@@ -1,1 +1,1 @@
-{"version":2,"defects":{"Tests\\Unit\\EquipmentTest::test_it_can_be_created_with_valid_data":8},"times":{"Tests\\Unit\\EquipmentTest::test_it_can_be_created_with_valid_data":0.175}}
+{"version":2,"defects":{"Tests\\Unit\\EquipmentTest::test_it_can_be_created_with_valid_data":8},"times":{"Tests\\Unit\\EquipmentTest::test_it_can_be_created_with_valid_data":0.053}}
