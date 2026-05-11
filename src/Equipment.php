@@ -11,6 +11,9 @@ class Equipment
         private string $category,
         private float $dailyRate
     ) {
+        if ($dailyRate < 0) {
+            throw new \InvalidArgumentException('Daily rate cannot be negative.');
+        }
     }
 
     public function getName(): string
