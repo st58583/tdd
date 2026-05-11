@@ -24,4 +24,14 @@ class EquipmentTest extends TestCase
         $this->assertSame($category, $equipment->getCategory());
         $this->assertSame($dailyRate, $equipment->getDailyRate());
     }
+	
+	public function test_it_cannot_have_negative_daily_rate(): void
+    {
+        // Assert - řekneme PHPUnitu, že očekáváme výjimku
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Daily rate cannot be negative.');
+
+        // Arrange & Act - pokusíme se vytvořit nevalidní objekt
+        new Equipment('Snowboard', 'Winter', -50.0);
+    }
 }
