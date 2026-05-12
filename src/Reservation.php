@@ -6,6 +6,8 @@ namespace App;
 
 class Reservation
 {
+    public const MAX_EQUIPMENT_ITEMS = 5;
+
     /** @var Equipment[] */
     private array $equipment = [];
 
@@ -36,5 +38,14 @@ class Reservation
     public function getEquipment(): array
     {
         return $this->equipment;
+    }
+
+    public function addEquipment(Equipment $equipment): void
+    {
+        if (count($this->equipment) >= self::MAX_EQUIPMENT_ITEMS) {
+            throw new \DomainException('Reservation can contain a maximum of ' . self::MAX_EQUIPMENT_ITEMS . ' items.');
+        }
+
+        $this->equipment[] = $equipment;
     }
 }

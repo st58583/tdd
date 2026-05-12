@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use App\Reservation;
 use App\User;
+use App\Equipment;
 use PHPUnit\Framework\TestCase;
 
 class ReservationTest extends TestCase
