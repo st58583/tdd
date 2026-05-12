@@ -9,9 +9,9 @@ class User
     private bool $hasUnpaidFines = false;
 
     public function __construct(
-        private int $id,
-        private string $name,
-        private string $email
+        private readonly int $id,
+        private readonly string $name,
+        private readonly string $email
     ) {
     }
 
