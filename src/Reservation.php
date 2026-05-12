@@ -10,6 +10,9 @@ class Reservation
 
     /** @var Equipment[] */
     private array $equipment = [];
+    
+    // Nová rezervace má vždy výchozí stav CREATED
+    private ReservationStatus $status = ReservationStatus::CREATED;
 
     public function __construct(
         private readonly int $id,
@@ -48,13 +51,11 @@ class Reservation
 
         $this->equipment[] = $equipment;
     }
-	
-	public function calculateTotalPrice(): float
+
+    public function calculateTotalPrice(): float
     {
-        // Zjištění počtu dní (rozdíl mezi daty)
         $days = $this->startDate->diff($this->endDate)->days;
         
-        // Pokud si někdo půjčí a vrátí ve stejný den, účtujeme minimálně 1 den
         if ($days === 0) {
             $days = 1;
         }
@@ -66,11 +67,32 @@ class Reservation
 
         $totalPrice = $dailyTotal * $days;
 
-        // Aplikace slevy 10 % pro rezervace delší než 7 dní
         if ($days > 7) {
             $totalPrice *= 0.9;
         }
 
         return $totalPrice;
+    }
+
+    // --- NOVÉ METODY PRO STAVY ---
+
+    public function getStatus(): ReservationStatus
+    {
+        return $this->status;
+    }
+
+    public function markAsPickedUp(): void
+    {
+        $this->status = ReservationStatus::PICKED_UP;
+    }
+
+    public function markAsReturned(): void
+    {
+        // Hlídání business pravidla: Nelze vrátit to, co nebylo vyzvednuto
+        if ($this->status !== ReservationStatus::PICKED_UP) {
+            throw new \DomainException('Cannot return a reservation that has not been picked up.');
+        }
+
+        $this->status = ReservationStatus::RETURNED;
     }
 }
