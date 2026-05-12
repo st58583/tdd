@@ -117,4 +117,36 @@ class ReservationTest extends TestCase
         // Cena za den 100. Krát 10 dní = 1000. Sleva 10% = 900.
         $this->assertSame(900.0, $reservation->calculateTotalPrice());
     }
+	
+	public function test_it_has_created_status_by_default(): void
+    {
+        $user = new User(1, 'Jan', 'jan@test.com');
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable(), new \DateTimeImmutable());
+
+        // Očekáváme, že nová rezervace má výchozí stav (např. string 'CREATED' nebo budoucí Enum)
+        // Pro lepší architekturu použijeme Enum
+        $this->assertEquals(\App\ReservationStatus::CREATED, $reservation->getStatus());
+    }
+
+    public function test_it_can_be_picked_up(): void
+    {
+        $user = new User(1, 'Jan', 'jan@test.com');
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable(), new \DateTimeImmutable());
+
+        $reservation->markAsPickedUp();
+
+        $this->assertEquals(\App\ReservationStatus::PICKED_UP, $reservation->getStatus());
+    }
+
+    public function test_it_cannot_be_returned_if_not_picked_up_first(): void
+    {
+        $user = new User(1, 'Jan', 'jan@test.com');
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable(), new \DateTimeImmutable());
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Cannot return a reservation that has not been picked up.');
+
+        // Pokusíme se ji rovnou vrátit, aniž by si ji zákazník vyzvedl
+        $reservation->markAsReturned();
+    }
 }
