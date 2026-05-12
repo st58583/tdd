@@ -42,4 +42,39 @@ class ReservationTest extends TestCase
         // Act - Pokus o vytvoření rezervace
         new Reservation(2, $user, $startDate, $endDate);
     }
+	
+	public function test_it_can_add_equipment(): void
+    {
+        // Arrange
+        $user = new User(1, 'Jan', 'jan@example.com');
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-05'));
+        $equipment = new Equipment('Horské kolo', 'Cyklistika', 500.0);
+
+        // Act
+        $reservation->addEquipment($equipment);
+
+        // Assert
+        $this->assertCount(1, $reservation->getEquipment());
+        $this->assertSame($equipment, $reservation->getEquipment()[0]);
+    }
+
+    public function test_it_cannot_have_more_than_five_items(): void
+    {
+        // Arrange
+        $user = new User(1, 'Jan', 'jan@example.com');
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-05'));
+        $equipment = new Equipment('Helma', 'Příslušenství', 50.0);
+
+        // Přidáme 5 položek (maximální kapacita)
+        for ($i = 0; $i < 5; $i++) {
+            $reservation->addEquipment($equipment);
+        }
+
+        // Assert - Očekáváme výjimku při 6. položce
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Reservation can contain a maximum of 5 items.');
+
+        // Act - Pokus o přidání 6. položky
+        $reservation->addEquipment($equipment);
+    }
 }
