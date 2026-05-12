@@ -87,14 +87,14 @@ class ReservationTest extends TestCase
         $reservation = new Reservation(1, $user, new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-06'));
 
         // Vytvoření MOCKU (falešného objektu) pro Equipment
-        $equipmentMock1 = $this->createMock(Equipment::class);
-        $equipmentMock1->method('getDailyRate')->willReturn(100.0); // Falešné kolo za 100/den
+        $equipmentStub1 = $this->createStub(Equipment::class);
+        $equipmentStub1->method('getDailyRate')->willReturn(100.0); // Falešné kolo za 100/den
 
-        $equipmentMock2 = $this->createMock(Equipment::class);
-        $equipmentMock2->method('getDailyRate')->willReturn(200.0); // Falešné lyže za 200/den
+        $equipmentStub2 = $this->createStub(Equipment::class);
+        $equipmentStub2->method('getDailyRate')->willReturn(200.0); // Falešné lyže za 200/den
 
-        $reservation->addEquipment($equipmentMock1);
-        $reservation->addEquipment($equipmentMock2);
+        $reservation->addEquipment($equipmentStub1);
+        $reservation->addEquipment($equipmentStub2);
 
         // Act & Assert
         // Cena celkem za den je 300. Krát 5 dní = 1500.
@@ -108,10 +108,10 @@ class ReservationTest extends TestCase
         // Rezervace na 10 dní
         $reservation = new Reservation(1, $user, new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-11'));
 
-        $equipmentMock = $this->createMock(Equipment::class);
-        $equipmentMock->method('getDailyRate')->willReturn(100.0);
+        $equipmentStub = $this->createStub(Equipment::class);
+        $equipmentStub->method('getDailyRate')->willReturn(100.0);
 
-        $reservation->addEquipment($equipmentMock);
+        $reservation->addEquipment($equipmentStub);
 
         // Act & Assert
         // Cena za den 100. Krát 10 dní = 1000. Sleva 10% = 900.
