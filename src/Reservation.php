@@ -48,4 +48,29 @@ class Reservation
 
         $this->equipment[] = $equipment;
     }
+	
+	public function calculateTotalPrice(): float
+    {
+        // Zjištění počtu dní (rozdíl mezi daty)
+        $days = $this->startDate->diff($this->endDate)->days;
+        
+        // Pokud si někdo půjčí a vrátí ve stejný den, účtujeme minimálně 1 den
+        if ($days === 0) {
+            $days = 1;
+        }
+
+        $dailyTotal = 0.0;
+        foreach ($this->equipment as $item) {
+            $dailyTotal += $item->getDailyRate();
+        }
+
+        $totalPrice = $dailyTotal * $days;
+
+        // Aplikace slevy 10 % pro rezervace delší než 7 dní
+        if ($days > 7) {
+            $totalPrice *= 0.9;
+        }
+
+        return $totalPrice;
+    }
 }
