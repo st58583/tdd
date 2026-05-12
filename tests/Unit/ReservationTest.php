@@ -78,4 +78,43 @@ class ReservationTest extends TestCase
         // Act - Pokus o přidání 6. položky
         $reservation->addEquipment($equipment);
     }
+	
+	public function test_it_calculates_total_price_without_discount(): void
+    {
+        // Arrange
+        $user = new User(1, 'Jan', 'jan@test.com');
+        // Rezervace na 5 dní (od 1. do 6. = 5 nocí/dní)
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-06'));
+
+        // Vytvoření MOCKU (falešného objektu) pro Equipment
+        $equipmentMock1 = $this->createMock(Equipment::class);
+        $equipmentMock1->method('getDailyRate')->willReturn(100.0); // Falešné kolo za 100/den
+
+        $equipmentMock2 = $this->createMock(Equipment::class);
+        $equipmentMock2->method('getDailyRate')->willReturn(200.0); // Falešné lyže za 200/den
+
+        $reservation->addEquipment($equipmentMock1);
+        $reservation->addEquipment($equipmentMock2);
+
+        // Act & Assert
+        // Cena celkem za den je 300. Krát 5 dní = 1500.
+        $this->assertSame(1500.0, $reservation->calculateTotalPrice());
+    }
+
+    public function test_it_calculates_total_price_with_ten_percent_discount_for_long_rentals(): void
+    {
+        // Arrange
+        $user = new User(1, 'Jan', 'jan@test.com');
+        // Rezervace na 10 dní
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-11'));
+
+        $equipmentMock = $this->createMock(Equipment::class);
+        $equipmentMock->method('getDailyRate')->willReturn(100.0);
+
+        $reservation->addEquipment($equipmentMock);
+
+        // Act & Assert
+        // Cena za den 100. Krát 10 dní = 1000. Sleva 10% = 900.
+        $this->assertSame(900.0, $reservation->calculateTotalPrice());
+    }
 }
