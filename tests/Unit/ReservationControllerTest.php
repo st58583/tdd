@@ -25,7 +25,7 @@ class ReservationControllerTest extends TestCase
         $user = new User(1, 'Jan', 'jan@example.com');
         $userRepoMock->method('findById')->willReturn($user);
 
-        $equipment = new Equipment(101, 'Stan', 200.0);
+        $equipment = new Equipment('Stan', 'Outdoor', 200.0);
         $equipmentRepoMock->method('findById')->willReturn($equipment);
 
         // Controller očekává tento tvar dat z REST API
