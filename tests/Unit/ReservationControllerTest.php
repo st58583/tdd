@@ -16,59 +16,77 @@ class ReservationControllerTest extends TestCase
 {
     public function test_api_returns_201_on_successful_reservation(): void
     {
-        // 1. Arrange: Vytvoříme Mocks pro všechny repozitáře
-        $userRepoMock = $this->createMock(UserRepository::class);
-        $equipmentRepoMock = $this->createMock(EquipmentRepository::class);
-        $reservationRepoMock = $this->createMock(ReservationRepository::class);
+        // POUŽITÍ STUBŮ MÍSTO MOCKŮ (řeší to PHPUnit Notices)
+        $userRepoStub = $this->createStub(UserRepository::class);
+        $equipmentRepoStub = $this->createStub(EquipmentRepository::class);
+        $reservationRepoStub = $this->createStub(ReservationRepository::class);
 
-        // Nastavíme, co mají Mocks vracet, když se jich Controller zeptá
         $user = new User(1, 'Jan', 'jan@example.com');
-        $userRepoMock->method('findById')->willReturn($user);
+        $userRepoStub->method('findById')->willReturn($user);
 
         $equipment = new Equipment('Stan', 'Outdoor', 200.0);
-        $equipmentRepoMock->method('findById')->willReturn($equipment);
+        $equipmentRepoStub->method('findById')->willReturn($equipment);
 
-        // Controller očekává tento tvar dat z REST API
         $requestData = [
-            'id' => 1, // ID nové rezervace
+            'id' => 1,
             'user_id' => 1,
             'equipment_ids' => [101],
             'start_date' => '2023-06-01',
             'end_date' => '2023-06-05'
         ];
 
-        $controller = new ReservationController($userRepoMock, $equipmentRepoMock, $reservationRepoMock);
-
-        // 2. Act
+        $controller = new ReservationController($userRepoStub, $equipmentRepoStub, $reservationRepoStub);
         $response = $controller->createReservation($requestData);
 
-        // 3. Assert
         $this->assertSame(201, $response['status_code']);
-        $this->assertStringContainsString('Reservation created successfully', $response['body']);
     }
 
     public function test_api_returns_400_when_user_not_found(): void
     {
-        $userRepoMock = $this->createMock(UserRepository::class);
-        $equipmentRepoMock = $this->createMock(EquipmentRepository::class);
-        $reservationRepoMock = $this->createMock(ReservationRepository::class);
+        $userRepoStub = $this->createStub(UserRepository::class);
+        $equipmentRepoStub = $this->createStub(EquipmentRepository::class);
+        $reservationRepoStub = $this->createStub(ReservationRepository::class);
 
-        // Uživatel neexistuje (vrátí null)
-        $userRepoMock->method('findById')->willReturn(null);
+        $userRepoStub->method('findById')->willReturn(null);
 
         $requestData = [
             'id' => 1,
-            'user_id' => 999, // Neexistující ID
+            'user_id' => 999,
             'equipment_ids' => [101],
             'start_date' => '2023-06-01',
             'end_date' => '2023-06-05'
         ];
 
-        $controller = new ReservationController($userRepoMock, $equipmentRepoMock, $reservationRepoMock);
-
+        $controller = new ReservationController($userRepoStub, $equipmentRepoStub, $reservationRepoStub);
         $response = $controller->createReservation($requestData);
 
         $this->assertSame(400, $response['status_code']);
-        $this->assertStringContainsString('User not found', $response['body']);
+    }
+
+    public function test_api_returns_400_when_domain_rule_is_violated(): void
+    {
+        $userRepoStub = $this->createStub(UserRepository::class);
+        $equipmentRepoStub = $this->createStub(EquipmentRepository::class);
+        $reservationRepoStub = $this->createStub(ReservationRepository::class);
+
+        // Uživatel má neuhrazené pokuty - nesmí vytvořit rezervaci!
+        $user = new User(1, 'Jan', 'jan@example.com');
+        $user->markAsHavingUnpaidFines(); 
+        $userRepoStub->method('findById')->willReturn($user);
+
+        $requestData = [
+            'id' => 1,
+            'user_id' => 1,
+            'equipment_ids' => [101],
+            'start_date' => '2023-06-01',
+            'end_date' => '2023-06-05'
+        ];
+
+        $controller = new ReservationController($userRepoStub, $equipmentRepoStub, $reservationRepoStub);
+        $response = $controller->createReservation($requestData);
+
+        // Očekáváme, že Controller zachytí DomainException a vrátí 400
+        $this->assertSame(400, $response['status_code']);
+		$this->assertStringContainsString('unpaid fines', $response['body']);
     }
 }

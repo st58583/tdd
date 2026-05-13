@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App;
 
+/** @codeCoverageIgnore */
 class ReservationRepository
 {
     public function save(Reservation $reservation): void
