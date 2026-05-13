@@ -55,4 +55,13 @@ class UserRepositoryTest extends TestCase
         $this->assertSame('jana@example.com', $foundUser->getEmail());
         $this->assertTrue($foundUser->hasUnpaidFines());
     }
+	
+	public function test_it_returns_null_when_user_not_found(): void
+    {
+        // Schválně hledáme ID 999, které jsme do databáze neuložili
+        $foundUser = $this->repository->findById(999);
+
+        // Očekáváme, že se vrátí null
+        $this->assertNull($foundUser);
+    }
 }

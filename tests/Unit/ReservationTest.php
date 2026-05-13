@@ -149,4 +149,18 @@ class ReservationTest extends TestCase
         // Pokusíme se ji rovnou vrátit, aniž by si ji zákazník vyzvedl
         $reservation->markAsReturned();
     }
+	
+	public function test_it_can_be_returned_after_being_picked_up(): void
+    {
+        // Arrange
+        $user = new User(1, 'Jan', 'jan@test.com');
+        $reservation = new Reservation(1, $user, new \DateTimeImmutable(), new \DateTimeImmutable());
+
+        // Act - nejdříve vyzvedneme, pak vrátíme
+        $reservation->markAsPickedUp();
+        $reservation->markAsReturned();
+
+        // Assert
+        $this->assertEquals(\App\ReservationStatus::RETURNED, $reservation->getStatus());
+    }
 }
