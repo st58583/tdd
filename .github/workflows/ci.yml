@@ -1,0 +1,37 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repozitáře
+        uses: actions/checkout@v4
+
+      - name: Sestavení a spuštění Docker prostředí
+        run: docker-compose up -d --build
+
+      - name: Čekání na inicializaci databáze
+        # Databázi chvíli trvá, než začne přijímat spojení
+        run: |
+          echo "Čekám na spuštění MySQL..."
+          sleep 45
+
+      - name: Instalace závislostí (Composer)
+        # Parametr -T je nutný pro běh v CI (neinteraktivní terminál)
+        run: docker-compose exec -T app composer install -n
+
+      - name: Spuštění PHPUnit testů a Code Coverage
+        run: docker-compose exec -T app vendor/bin/phpunit
+
+      - name: Nahrání Coverage reportu jako artefaktu
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: coverage/
