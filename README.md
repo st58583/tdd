@@ -37,6 +37,7 @@ Vygenerovaný HTML report pokrytí kódu testy (Code Coverage) se uloží do slo
 Aplikace je navržena s využitím principů Domain-Driven Design (DDD).
 * **Doménová vrstva:** Obsahuje entity (`User`, `Equipment`, `Reservation`) a hodnotové objekty/výčty (`ReservationStatus`). Obsahuje veškerou business logiku a je zcela nezávislá na frameworku a databázi. Využívá moderní prvky PHP 8 (Readonly properties, Enums, Constructor property promotion).
 * **Infrastrukturní vrstva (Perzistence):** Zastoupena třídou `UserRepository`, která implementuje návrhový vzor Repository. Stará se o mapování doménových objektů do relační databáze MySQL pomocí knihovny PDO (Prepared statements pro ochranu proti SQL injection). 
+* **Vrstva rozhraní (API):** Zastoupena třídou `UserController`, která simuluje chování REST API. Zajišťuje validaci vstupních dat (např. kontrola formátu e-mailu, přítomnost povinných polí) a vrací odpovídající HTTP kódy (201 pro úspěch, 400 pro klientské chyby) spolu se srozumitelnými chybovými zprávami ve formátu JSON.
 
 ## 4. Testovací strategie
 Celý vývoj probíhal v cyklech **Red-Green-Refactor** a struktura testů dodržuje konvenci **AAA** (Arrange, Act, Assert).
