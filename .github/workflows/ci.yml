@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Sestavení a spuštění Docker prostředí
-        run: docker-compose up -d --build
+        run: docker compose up -d --build
 
       - name: Čekání na inicializaci databáze
         # Databázi chvíli trvá, než začne přijímat spojení
@@ -25,10 +25,10 @@ jobs:
 
       - name: Instalace závislostí (Composer)
         # Parametr -T je nutný pro běh v CI (neinteraktivní terminál)
-        run: docker-compose exec -T app composer install -n
+        run: docker compose exec -T app composer install -n
 
       - name: Spuštění PHPUnit testů a Code Coverage
-        run: docker-compose exec -T app vendor/bin/phpunit
+        run: docker compose exec -T app vendor/bin/phpunit
 
       - name: Nahrání Coverage reportu jako artefaktu
         uses: actions/upload-artifact@v4
