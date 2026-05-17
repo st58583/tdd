@@ -20,6 +20,9 @@ jobs:
 
       - name: Build local environment
         run: docker compose up -d --build
+        
+      - name: Wait for database to initialize
+        run: sleep 20
 
       - name: Install dependencies
         # Přepínač -T je nutný pro CI bez interaktivního terminálu
