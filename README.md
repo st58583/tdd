@@ -122,3 +122,49 @@ curl -i -X POST http://localhost:8000/users \
 
 **Očekávaný výsledek:**
 API odpoví reálnou hlavičkou `HTTP/1.1 201 Created` a odpovídajícími JSON daty. Pro návrat do Windows terminálu stačí zadat příkaz `exit`.
+
+## 8. DevOps & Infrastruktura (Rozšíření)
+
+Projekt byl rozšířen o plnohodnotné DevOps workflow, které zajišťuje automatizované testování, kontejnerizaci a nasazení aplikace (CI/CD) do prostředí Kubernetes s důrazem na bezpečnost a operovatelnost.
+
+### 8.1 Architektura a datové toky
+Aplikace je navržena pro běh v kontejnerizovaném prostředí (Docker / K8s). Konfigurace je striktně oddělena od kódu pomocí proměnných prostředí (12-Factor App).
+
+```mermaid
+graph TD
+    A[Vývojář / Git Push] -->|Push/PR| B(GitHub Actions CI/CD)
+    B -->|1. Test & Analyse| C{PHPUnit & PHPStan}
+    B -->|2. Build & Push| D[(GitHub Container Registry)]
+    B -->|3. CD Deploy| E[Kubernetes Cluster]
+    E --> F[Namespace: rental-staging / production]
+    F --> G[Service: rental-service]
+    G --> H[Deployment: rental-app pod 1]
+    G --> I[Deployment: rental-app pod 2]
+    H -.->|Čte hesla| J[K8s Secret]
+    H -.->|Čte config| K[K8s ConfigMap]
+    H <-->|SQL| L[(MySQL Database)]
+```
+
+### 8.2 Kontejnerizace a Bezpečnost (K8s & Docker)
+* **Multi-stage Dockerfile:** Kontejnerizace je rozdělena do fází (`base`, `dev`, `builder`, `prod`). Produkční obraz je minimalizovaný (neobsahuje dev závislosti jako PHPUnit/Xdebug), běží pod **bezpečným ne-root uživatelem** (`appuser`) a obsahuje definovaný `HEALTHCHECK` pro K8s sondy.
+* **Správa tajných údajů (Secrets):** V repozitáři se **nenachází žádná hesla v plaintextu**. Lokální vývoj využívá standardní docker-compose proměnné. Pro K8s je připravena šablona `k8s/secret.example.yaml`. V reálném prostředí jsou hesla injektována bezpečně přes CI/CD pipeline přímo z GitHub Secrets do Kubernetes Secretu.
+* **Kubernetes Manifesty:** Aplikace je definována pomocí standardních YAML manifestů (`Deployment`, `Service`, `ConfigMap`). Na úrovni K8s jsou definovány striktní resource limity (CPU/Memory requests a limits), aby se zabránilo přesycení clusteru.
+
+### 8.3 CI/CD Pipeline a Správa prostředí
+Pipeline je implementována pomocí GitHub Actions (`.github/workflows`) a skládá se ze 3 fází:
+1. **CI (Test-and-Analyze):** Nasimuluje DB s čekáním na inicializaci (prevence race-conditions), spustí statickou analýzu (PHPStan) a Unit/Integration testy.
+2. **Build-and-Push:** Po úspěšných testech sestaví čistý produkční Docker Image a pushne ho do GitHub Container Registry (GHCR) s unikátním tagem podle Git SHA.
+3. **CD (Deploy):** Dynamicky vyhodnocuje cílové prostředí na základě Git Flow.
+   * Větev `feature/*` -> nasazení do izolovaného namespace `rental-staging` (ověření).
+   * Větev `main` -> nasazení do namespace `rental-production`.
+
+### 8.4 Strategie nasazení (Release Management)
+Výchozí strategií nasazení v našem Kubernetes Deploymentu je **Rolling Update**. Při nové verzi se postupně odstavují staré Pody a startují nové, čímž je zajištěn "Zero-Downtime Deployment" (aplikace je pro uživatele neustále dostupná). V případě chyby (healthcheck nového podu selže) se proces zastaví a je možné provést okamžitý rollback příkazem `kubectl rollout undo deployment/rental-app`.
+
+### 8.5 Observabilita (Monitoring a Logy)
+* **Logování:** Aplikace produkuje aplikační logy na standardní výstup (`stdout/stderr`), což plně koresponduje s K8s standardy. V produkci jsou tyto logy sbírány nástrojem Promtail a centralizovány v **Loki** pro snadné full-textové vyhledávání.
+* **Monitoring a Alerting:** Metriky kontejneru a K8s nodů jsou sbírány nástrojem **Prometheus** a vizualizovány v **Grafaně**. 
+* **Alerting:** Definovaná pravidla (Alertmanager) upozorní tým na Slack/E-mail při těchto událostech:
+  * *CrashLoopBackOff:* Aplikace v K8s neustále padá.
+  * *High Error Rate:* Počet HTTP 500 chyb stoupne nad 5 % za posledních 5 minut.
+  * *Memory Saturation:* Pod dosahuje limitu paměti (riziko OOMKilled).
