@@ -14,9 +14,17 @@ header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// 3. Připojení k reálné databázi (jako v našem integračním testu)
+// 3. Připojení k reálné databázi (pomocí proměnných prostředí)
 try {
-    $pdo = new PDO('mysql:host=db;dbname=rental_db;charset=utf8mb4', 'root', 'root');
+    // Načteme konfiguraci z prostředí, nebo použijeme lokální výchozí hodnoty
+    $dbHost = getenv('DB_HOST') ?: 'db';
+    $dbName = getenv('DB_NAME') ?: 'rental_db';
+    $dbUser = getenv('DB_USER') ?: 'root';
+    $dbPass = getenv('DB_PASSWORD') ?: 'root';
+
+    $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4";
+    
+    $pdo = new PDO($dsn, $dbUser, $dbPass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     http_response_code(500);
