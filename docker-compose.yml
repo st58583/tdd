@@ -2,6 +2,7 @@ services:
   app:
     build:
       context: .
+      target: dev
       dockerfile: Dockerfile
     volumes:
       - .:/app
