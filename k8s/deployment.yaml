@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rental-app
+  labels:
+    app: rental-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rental-app
+  template:
+    metadata:
+      labels:
+        app: rental-app
+    spec:
+      containers:
+      - name: php-app
+        image: ghcr.io/st58583/tdd:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+        # Napojení proměnných z ConfigMap a Secretu
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secret

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  DB_HOST: "db" # V reálném K8s by zde byla adresa K8s databázové služby
+  DB_NAME: "rental_db"
