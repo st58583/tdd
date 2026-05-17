@@ -31,7 +31,7 @@ jobs:
 
       - name: Run Tests with Coverage
         # Spustí testy a vygeneruje report
-        run: docker compose exec -T app vendor/bin/phpunit
+        run: docker compose exec -T -e XDEBUG_MODE=coverage app vendor/bin/phpunit
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
