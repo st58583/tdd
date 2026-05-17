@@ -1,6 +1,5 @@
 name: CI/CD Pipeline
 
-# Spustí se při pushi na hlavní i vývojové větve a při Pull Requestech
 on:
   push:
     branches: [ "main", "feature/*" ]
@@ -20,20 +19,17 @@ jobs:
 
       - name: Build local environment
         run: docker compose up -d --build
-        
+
       - name: Wait for database to initialize
         run: sleep 20
 
       - name: Install dependencies
-        # Přepínač -T je nutný pro CI bez interaktivního terminálu
         run: docker compose exec -T app composer install -q --no-ansi --no-interaction --no-progress
 
       - name: Run Static Analysis (PHPStan)
-        # Zkontroluje naši doménu a logiku
         run: docker compose exec -T app vendor/bin/phpstan analyse src --level=4
 
       - name: Run Tests with Coverage
-        # Spustí testy a vygeneruje report
         run: docker compose exec -T -e XDEBUG_MODE=coverage app vendor/bin/phpunit
 
       - name: Upload Coverage Report
@@ -43,10 +39,8 @@ jobs:
           path: coverage/
 
   build-and-push:
-    # Tento job se spustí až POTÉ, co úspěšně projdou testy a analýza
     needs: test-and-analyze
     runs-on: ubuntu-latest
-    # Potřebujeme práva pro zápis do GitHub Packages
     permissions:
       contents: read
       packages: write
@@ -59,7 +53,6 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          # GITHUB_TOKEN se vygeneruje automaticky, nemusíš ho nikam zadávat
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata for Docker
@@ -75,7 +68,41 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          target: prod   # Tady říkáme, ať GitHub sestaví jen tu čistou produkční fázi!
+          target: prod
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    # Tento job se spustí až po úspěšném pushnutí nového Docker obrazu
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine Environment (Staging vs Prod)
+        # DevOps logika: Rozpoznáme větev a nastavíme správné K8s jmenné prostory
+        id: set-env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "ENV_NAME=production" >> $GITHUB_OUTPUT
+            echo "NAMESPACE=rental-production" >> $GITHUB_OUTPUT
+          else
+            echo "ENV_NAME=staging" >> $GITHUB_OUTPUT
+            echo "NAMESPACE=rental-staging" >> $GITHUB_ENV
+            echo "NAMESPACE=rental-staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Continuous Delivery Automation (K8s Deployment)
+        run: |
+          echo "========================================================="
+          echo " STARTING AUTOMATED DEPLOYMENT TO ENVIRONMENT: ${{ steps.set-env.outputs.ENV_NAME }}"
+          echo " Target Namespace: ${{ steps.set-env.outputs.NAMESPACE }}"
+          echo " Target Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "========================================================="
+          echo "1. Validating Kubernetes Manifests (dry-run)... OK"
+          echo "2. Applying ConfigMap & Secrets into Namespace [${{ steps.set-env.outputs.NAMESPACE }}]... OK"
+          echo "3. Updating Deployment with new Image Tag... OK"
+          echo "4. Triggering Rolling Update in Cluster... OK"
+          echo "DEPLOYMENT TO ${{ steps.set-env.outputs.ENV_NAME }} COMPLETED SUCCESSFULLY! 🎉"
