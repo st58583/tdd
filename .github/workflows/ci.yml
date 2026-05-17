@@ -1,37 +1,78 @@
 name: CI/CD Pipeline
 
+# Spustí se při pushi na hlavní i vývojové větve a při Pull Requestech
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/*" ]
   pull_request:
     branches: [ "main" ]
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repozitáře
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Sestavení a spuštění Docker prostředí
+      - name: Build local environment
         run: docker compose up -d --build
 
-      - name: Čekání na inicializaci databáze
-        # Databázi chvíli trvá, než začne přijímat spojení
-        run: |
-          echo "Čekám na spuštění MySQL..."
-          sleep 45
+      - name: Install dependencies
+        # Přepínač -T je nutný pro CI bez interaktivního terminálu
+        run: docker compose exec -T app composer install -q --no-ansi --no-interaction --no-progress
 
-      - name: Instalace závislostí (Composer)
-        # Parametr -T je nutný pro běh v CI (neinteraktivní terminál)
-        run: docker compose exec -T app composer install -n
+      - name: Run Static Analysis (PHPStan)
+        # Zkontroluje naši doménu a logiku
+        run: docker compose exec -T app vendor/bin/phpstan analyse src --level=4
 
-      - name: Spuštění PHPUnit testů a Code Coverage
+      - name: Run Tests with Coverage
+        # Spustí testy a vygeneruje report
         run: docker compose exec -T app vendor/bin/phpunit
 
-      - name: Nahrání Coverage reportu jako artefaktu
+      - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
-          name: code-coverage-report
+          name: code-coverage
           path: coverage/
+
+  build-and-push:
+    # Tento job se spustí až POTÉ, co úspěšně projdou testy a analýza
+    needs: test-and-analyze
+    runs-on: ubuntu-latest
+    # Potřebujeme práva pro zápis do GitHub Packages
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # GITHUB_TOKEN se vygeneruje automaticky, nemusíš ho nikam zadávat
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Build and push Production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: prod   # Tady říkáme, ať GitHub sestaví jen tu čistou produkční fázi!
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
